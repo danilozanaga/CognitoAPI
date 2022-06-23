@@ -134,6 +134,7 @@ namespace CognitoAPI.Controllers
                 };
 
                 HttpContext.Response.Cookies.Append("Token", response.Tokens.AccessToken,options);
+                HttpContext.Response.Cookies.Append("UserId", model.EmailAddress, options);
                 HttpContext.Response.Cookies.Append("AppId", model.AppId, options);
 
                 _token = response.Tokens;
@@ -156,12 +157,10 @@ namespace CognitoAPI.Controllers
 
             if (response.IsSuccess)
             {
-                TempData["UserId"] = response.UserId;
-                TempData["EmailAddress"] = response.EmailAddress;
-                return Ok();
+                return Ok(response);
             }
 
-            return Ok(model);
+            return StatusCode(500,response.Message);
         }
 
         [HttpPost("confirmsignup")]
@@ -172,10 +171,9 @@ namespace CognitoAPI.Controllers
             if (response.IsSuccess)
             {
                 return Ok(model);
-                //return RedirectToAction("Login");
             }
 
-            return Ok(model);
+            return StatusCode(500,response.Message);
         }
 
         #endregion
@@ -198,25 +196,35 @@ namespace CognitoAPI.Controllers
 
         #endregion
 
-        //[System.Web.Http.Authorize]
-        //public async Task<IActionResult> LogOutAsync()
-        //{
-        //    var userId = User.Claims.Where(x => x.Type == ClaimTypes.NameIdentifier).First();
+        [HttpPost("logout")]
+        public async Task<IActionResult> LogOutAsync()
+        {
+            var cookies = HttpContext.Request.Cookies;
+            if (cookies.ContainsKey("Token") && (cookies["AppId"] != "" )) 
+            {
+                var user = new UserSignOutModel
+                {
+                    AccessToken = cookies["Token"],
+                    UserId = cookies["UserId"]
+                };
+                await _userService.TryLogOutAsync(user);
+                CookieOptions options = new CookieOptions
+                {
+                    Domain = "localhost",
+                    MaxAge = new TimeSpan(0, 0, 0),
+                    HttpOnly = true,
+                    Secure = true,
+                    Path = "/"
+                };
 
-        //    var tokens = _cache.Get<TokenModel>($"{userId.Value}_{Session_TokenKey}");
-
-        //    var user = new UserSignOutModel
-        //    {
-        //        AccessToken = tokens.AccessToken,
-        //        UserId = userId.Value
-        //    };
-
-        //    _cache.Remove($"{userId.Value}_{Session_TokenKey}");
-
-        //    await _userService.TryLogOutAsync(user);
-
-        //    return RedirectToAction("Index");
-        //}
+                HttpContext.Response.Cookies.Append("Token", user.AccessToken, options); ;
+                HttpContext.Response.Cookies.Append("UserId", user.UserId, options);
+                HttpContext.Response.Cookies.Append("AppId", "", options);
+                return StatusCode(200, "Disconnected");
+            }
+            
+            return StatusCode(500, "No data found for logged user");
+        }
 
         #region Forgot-Password
 
