@@ -65,11 +65,7 @@ namespace CognitoAPI
 
             app.UseRouting();
 
-            app.UseCors(builder => builder
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials());
+            app.UseCors();
             app.UseAuthorization();
             app.UseAuthentication();
 
