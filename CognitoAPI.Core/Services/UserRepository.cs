@@ -8,6 +8,7 @@ using CognitoAPI.Interfaces.Repositories;
 using CognitoUserManager.Contracts;
 using CognitoUserManager.Contracts.DTO;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
@@ -26,8 +27,9 @@ namespace CognitoAPI.Core.Services
         private readonly CognitoUserPool _userPool;
         private readonly UserContextManager _userManager;
         private readonly HttpContext _httpContext;
+        private readonly IDistributedCache _cache;
 
-        public UserRepository(IOptions<AppConfig> appConfig, UserContextManager userManager, IHttpContextAccessor httpContextAccessor)
+        public UserRepository(IOptions<AppConfig> appConfig, UserContextManager userManager, IHttpContextAccessor httpContextAccessor, IDistributedCache cache)
         {
             _cloudConfig = appConfig.Value;
             _provider = new AmazonCognitoIdentityProviderClient(
@@ -35,6 +37,7 @@ namespace CognitoAPI.Core.Services
             _userPool = new CognitoUserPool(_cloudConfig.UserPoolId, _cloudConfig.AppClientId, _provider);
             _userManager = userManager;
             _httpContext = httpContextAccessor.HttpContext;
+            _cache = cache;
         }
 
         public async Task<UserSignUpResponse> CreateUserAsync(UserSignUpModel model)
@@ -160,6 +163,11 @@ namespace CognitoAPI.Core.Services
                     RefreshToken = result.Item2.RefreshToken
                 };
                 authResponseModel.IsSuccess = true;
+
+                string recordId = $"UserTokensRecord_User_{model.EmailAddress}";
+
+                _cache.SetRecordAsync(recordId, authResponseModel.Tokens).Wait();
+
                 return authResponseModel;
             }
             catch (UserNotConfirmedException)

@@ -20,12 +20,10 @@ namespace CognitoAPI.Controllers
     {
         public const string Session_TokenKey = "_Tokens";
         private readonly IUserRepository _userService;
-        private readonly IPersistService _cache;
 
-        public UserController(IUserRepository userService, IPersistService cache)
+        public UserController(IUserRepository userService)
         {
             _userService = userService;
-            _cache = cache;
         }
 
         //#region Landing-TokensPage
