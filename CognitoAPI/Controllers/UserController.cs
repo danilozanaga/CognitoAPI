@@ -126,7 +126,7 @@ namespace CognitoAPI.Controllers
             {
                 CookieOptions options = new CookieOptions
                 {
-                    Domain = "localhost.com",
+                    Domain = "localhost",
                     MaxAge = new TimeSpan(1,0,0),
                     HttpOnly = true,
                     Secure = true,
