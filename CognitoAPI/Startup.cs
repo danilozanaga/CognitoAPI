@@ -32,13 +32,6 @@ namespace CognitoAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(options =>
-            {
-                options.AddPolicy("CorsPolicy",
-                    builder => builder.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader());
-            });
             services.AddCognitoIdentity();
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
@@ -47,14 +40,19 @@ namespace CognitoAPI
                     options.SlidingExpiration = true;
                     options.AccessDeniedPath = "/Forbidden/";
                 });
+            services.AddCors();
             services.AddControllers();
             services.AddSwaggerGen();
-            services.AddMemoryCache();
             services.AddHttpContextAccessor();
             services.Configure<AppConfig>(Configuration.GetSection("AppConfig"));
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<UserContextManager>();
-            services.AddScoped<IPersistService, CacheService>();
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = Configuration.GetConnectionString("RedisCache");
+                options.InstanceName = "COGNITO_";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -71,7 +69,7 @@ namespace CognitoAPI
 
             app.UseRouting();
 
-            app.UseCors("CorsPolicy"); 
+            app.UseCors();
             app.UseAuthorization();
             app.UseAuthentication();
 
