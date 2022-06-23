@@ -32,7 +32,6 @@ namespace CognitoAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors();
             services.AddCognitoIdentity();
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
@@ -41,6 +40,7 @@ namespace CognitoAPI
                     options.SlidingExpiration = true;
                     options.AccessDeniedPath = "/Forbidden/";
                 });
+            services.AddCors();
             services.AddControllers();
             services.AddSwaggerGen();
             services.AddMemoryCache();
@@ -65,6 +65,11 @@ namespace CognitoAPI
 
             app.UseRouting();
 
+            app.UseCors(builder => builder
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
             app.UseAuthorization();
             app.UseAuthentication();
 
