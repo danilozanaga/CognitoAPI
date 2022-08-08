@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Net.NetworkInformation;
+using System.Linq;
+using CognitoAPI.Core.Model;
 
 namespace CognitoAPI.Controllers
 {
@@ -89,22 +92,88 @@ namespace CognitoAPI.Controllers
 
         }
 
+        [HttpPost("getmaddr")]
+        public async Task<List<string>> GetMacAddress()
+        {
+            List<String> macAddresses = new List<String>();
 
-        #region ExistingUser-Login
+            foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus == OperationalStatus.Up)
+                {
+                    macAddresses.Add(nic.GetPhysicalAddress().ToString());
+                }
+            }
 
-        //public IActionResult Login()
-        //{
-        //    return Ok();
-        //}
+            return macAddresses;
+        }
 
 
-        [HttpPost("getdata")]
+        [HttpPost("getmcaddr")]
+        public async Task<String> GetMACAddressUserAsync()
+        {
+            String firstMacAddress = NetworkInterface
+                .GetAllNetworkInterfaces()
+                .Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .Select(nic => nic.GetPhysicalAddress().ToString()) 
+                .FirstOrDefault();
+
+            return firstMacAddress;
+
+        }
+
+        [HttpPost("getallipuser")]
+        public async Task<List<NetInfo>> GetAllIpUserAsync()
+        {
+            List<NetInfo> info = new List<NetInfo>();
+            foreach (NetworkInterface netInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+               
+                IPInterfaceProperties ipProps = netInterface.GetIPProperties();
+                List<String> adresses = new List<string>();
+
+                foreach (UnicastIPAddressInformation addr in ipProps.UnicastAddresses)
+                {
+                    string _value = addr.Address.ToString();
+                    adresses.Add(_value);
+                }
+
+                if (adresses.Count > 0)
+                {
+                    info.Add(new NetInfo
+                    {
+                        Name = netInterface.Name,
+                        Description = netInterface.Description,
+                        Addresses = adresses
+                    });
+
+                }
+            }
+
+            return info;
+
+        }
+
+
+
+#region ExistingUser-Login
+
+//public IActionResult Login()
+//{
+//    return Ok();
+//}
+
+
+[HttpPost("getdata")]
         public async Task<ActionResult> GetData()
         {
             var cookies = HttpContext.Request.Cookies;
             if (cookies.ContainsKey("Token"))
             {
-                return Ok("Sucesso");
+                string _value = string.Empty; 
+                cookies.TryGetValue("Token",out _value);
+                
+                return Ok(_value);
             } else
             {
                 return StatusCode(401, "Unauthorized");

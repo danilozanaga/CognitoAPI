@@ -8,11 +8,11 @@ using CognitoAPI.Interfaces.Repositories;
 using CognitoUserManager.Contracts;
 using CognitoUserManager.Contracts.DTO;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
@@ -27,9 +27,10 @@ namespace CognitoAPI.Core.Services
         private readonly CognitoUserPool _userPool;
         private readonly UserContextManager _userManager;
         private readonly HttpContext _httpContext;
-        private readonly IDistributedCache _cache;
+        //private readonly IDistributedCache _cache;
 
-        public UserRepository(IOptions<AppConfig> appConfig, UserContextManager userManager, IHttpContextAccessor httpContextAccessor, IDistributedCache cache)
+        public UserRepository(IOptions<AppConfig> appConfig, UserContextManager userManager, IHttpContextAccessor httpContextAccessor)
+            //, IDistributedCache cache)
         {
             _cloudConfig = appConfig.Value;
             _provider = new AmazonCognitoIdentityProviderClient(
@@ -37,7 +38,7 @@ namespace CognitoAPI.Core.Services
             _userPool = new CognitoUserPool(_cloudConfig.UserPoolId, _cloudConfig.AppClientId, _provider);
             _userManager = userManager;
             _httpContext = httpContextAccessor.HttpContext;
-            _cache = cache;
+            //_cache = cache;
         }
 
         public async Task<UserSignUpResponse> CreateUserAsync(UserSignUpModel model)
@@ -166,7 +167,7 @@ namespace CognitoAPI.Core.Services
 
                 string recordId = $"UserTokensRecord_User_{model.EmailAddress}";
 
-                _cache.SetRecordAsync(recordId, authResponseModel.Tokens).Wait();
+                //_cache.SetRecordAsync(recordId, authResponseModel.Tokens).Wait();
 
                 return authResponseModel;
             }
@@ -422,12 +423,16 @@ namespace CognitoAPI.Core.Services
 
         public async Task<UserProfileResponse> GetUserAsync(string token)
         {
+            var _token = token;
+            var handler = new JwtSecurityTokenHandler();
+            var jwtSecurityToken = handler.ReadJwtToken(token);
+
             var userResponse = await _provider.GetUserAsync(new GetUserRequest
             {
                 AccessToken = token,
             });
 
-            // var user = _userPool.GetUser(userId);
+            //var user = _userPool.GetUser(userId);
 
             var attributes = userResponse.UserAttributes;
             var response = new UserProfileResponse

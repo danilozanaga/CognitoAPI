@@ -9,6 +9,7 @@
     <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.9" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="3.1.26" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.20.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,4 +18,7 @@
   </ItemGroup>
 
 
+  <ItemGroup>
+    <None Remove="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
 </Project>
