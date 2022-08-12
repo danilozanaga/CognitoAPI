@@ -7,10 +7,13 @@ using CognitoAPI.Interfaces.Repositories;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -47,6 +50,8 @@ namespace CognitoAPI
             services.Configure<AppConfig>(Configuration.GetSection("AppConfig"));
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<UserContextManager>();
+            services.AddHttpContextAccessor();
+            services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
 
             //services.AddStackExchangeRedisCache(options =>
             //{
@@ -82,6 +87,12 @@ namespace CognitoAPI
             {
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
                 options.RoutePrefix = string.Empty;
+            });
+
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                ForwardedHeaders.XForwardedProto
             });
         }
     }

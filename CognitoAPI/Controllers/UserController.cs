@@ -13,9 +13,29 @@ using System;
 using System.Net.NetworkInformation;
 using System.Linq;
 using CognitoAPI.Core.Model;
+using System.Net;
+using Microsoft.Extensions.Primitives;
 
 namespace CognitoAPI.Controllers
 {
+
+    public static class HttpContextExtensions
+    {
+        //https://gist.github.com/jjxtra/3b240b31a1ed3ad783a7dcdb6df12c36
+
+        public static IPAddress GetRemoteIPAddress(this HttpContext context, bool allowForwarded = true)
+        {
+            if (allowForwarded)
+            {
+                string header = (context.Request.Headers["CF-Connecting-IP"].FirstOrDefault() ?? context.Request.Headers["X-Forwarded-For"].FirstOrDefault());
+                if (IPAddress.TryParse(header, out IPAddress ip))
+                {
+                    return ip;
+                }
+            }
+            return context.Connection.RemoteIpAddress;
+        }
+    }
 
     [ApiController]
     [Route("[controller]")]
@@ -23,10 +43,12 @@ namespace CognitoAPI.Controllers
     {
         public const string Session_TokenKey = "_Tokens";
         private readonly IUserRepository _userService;
+        private IHttpContextAccessor _httpContextAccessor;
 
-        public UserController(IUserRepository userService)
+        public UserController(IUserRepository userService, IHttpContextAccessor accessor)
         {
             _userService = userService;
+            _httpContextAccessor = accessor;
         }
 
         //#region Landing-TokensPage
@@ -78,6 +100,44 @@ namespace CognitoAPI.Controllers
         //}
 
         //#endregion
+
+
+        [HttpGet("getlocalip")]
+        public async Task<String> GetLocalIp()
+        {
+            IPAddress remoteIpAddress = Request.HttpContext.Connection.RemoteIpAddress;
+            string result = "";
+            if (remoteIpAddress != null)
+            {
+                // If we got an IPV6 address, then we need to ask the network for the IPV4 address 
+                // This usually only happens when the browser is on the same machine as the server.
+                if (remoteIpAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                {
+                    remoteIpAddress = System.Net.Dns.GetHostEntry(remoteIpAddress).AddressList
+                        .First(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                }
+                result = remoteIpAddress.ToString();
+            }
+            return result;
+        }
+
+        //[HttpGet("getexternalip")]
+        //public async Task<String> GetExternalIp(HttpRequest request)
+        //{
+        //    HttpContextExtensions.GetRemoteIPAddress(context,)
+
+        //    var _realAddress = request.ServerVariables[@"HTTP_X_FORWARDED_FOR"];
+        //    if (_realAddress.IsNullOrEmpty())
+        //    {
+        //        _realAddress = request.ServerVariables[@"HTTP_FORWARDED"];
+        //    }
+        //    if (_realAddress.IsNullOrEmpty())
+        //    {
+        //        _realAddress = request.ServerVariables[@"REMOTE_ADDR"];
+        //    }
+
+        //    return _realAddress;
+        //}
 
         [HttpPost("getuser")]
         public async Task<UserProfileResponse> GetUserAsync(string token)
