@@ -53,11 +53,11 @@ namespace CognitoAPI
             services.AddHttpContextAccessor();
             services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
 
-            //services.AddStackExchangeRedisCache(options =>
-            //{
-            //    options.Configuration = Configuration.GetConnectionString("RedisCache");
-            //    options.InstanceName = "COGNITO_";
-            //});
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = Configuration.GetConnectionString("RedisCache");
+                options.InstanceName = "COGNITO_";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
